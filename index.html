@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejador Alimentar - Cardápio & Compras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-top">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <div>
+                        <h1>Planejador Alimentar</h1>
+                        <span>Cardápio Semanal & Lista de Compras</span>
+                    </div>
+                </div>
+                <div class="user-info">
+                    <div class="user-avatar">2P</div>
+                    <div>
+                        <h3>Para 2 Pessoas</h3>
+                        <p id="current-week">Semana 25/2023</p>
+                    </div>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Orçamento Semanal</h3>
+                        <div class="stat-value" id="stat-budget">€ 250,00</div>
+                    </div>
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Itens na Lista</h3>
+                        <div class="stat-value" id="stat-items">18</div>
+                    </div>
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Refeições Planejadas</h3>
+                        <div class="stat-value" id="stat-meals">21</div>
+                    </div>
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Economia Esta Semana</h3>
+                        <div class="stat-value" id="stat-savings">€ 45,00</div>
+                    </div>
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav>
+            <ul class="nav-tabs">
+                <li><a href="#" class="nav-link active" data-target="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="meal-plan">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Cardápio</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="shopping">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="expenses">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Despesas</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="inventory">
+                    <i class="fas fa-box"></i>
+                    <span>Inventário</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="recipes">
+                    <i class="fas fa-book"></i>
+                    <span>Receitas</span>
+                </a></li>
+                <li><a href="#" class="nav-link" data-target="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="content-section active">
+            <div class="dashboard-grid">
+                <!-- Meal Plan Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-day"></i> Cardápio desta Semana</h3>
+                        <button class="btn btn-outline" onclick="navigateToSection('meal-plan')">Ver Tudo</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="meal-plan-grid" id="dashboard-meal-plan">
+                            <!-- Cardápio será gerado por JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shopping List Preview -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-list-check"></i> Lista de Compras</h3>
+                        <button class="btn btn-primary" id="open-camera">
+                            <i class="fas fa-camera"></i> Escanear Nota
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <ul class="shopping-list" id="dashboard-shopping-list">
+                            <!-- Itens serão gerados por JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Recent Expenses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-receipt"></i> Últimas Compras</h3>
+                        <button class="btn btn-outline" onclick="navigateToSection('expenses')">Ver Todas</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="expense-list" id="dashboard-expenses">
+                            <!-- Despesas serão geradas por JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Ações Rápidas</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; gap: 15px;">
+                            <button class="btn btn-secondary" id="generate-meal-plan">
+                                <i class="fas fa-magic"></i> Gerar Cardápio Automático
+                            </button>
+                            <button class="btn btn-primary" id="generate-shopping-list">
+                                <i class="fas fa-cart-plus"></i> Gerar Lista de Compras
+                            </button>
+                            <button class="btn btn-outline" id="adjust-for-people">
+                                <i class="fas fa-users"></i> Ajustar para <span id="people-count">2</span> pessoas
+                            </button>
+                            <button class="btn btn-outline" id="export-data">
+                                <i class="fas fa-download"></i> Exportar Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recipe Suggestions -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lightbulb"></i> Sugestões de Receitas Econômicas</h3>
+                </div>
+                <div class="card-body">
+                    <div class="recipe-grid" id="dashboard-recipes">
+                        <!-- Receitas serão geradas por JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Meal Plan Section -->
+        <section id="meal-plan" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-calendar-alt"></i> Cardápio Semanal</h2>
+                <div>
+                    <button class="btn btn-outline" id="edit-meal-plan">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-primary" id="new-meal-plan">
+                        <i class="fas fa-plus"></i> Novo Cardápio
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Configuração do Cardápio</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Número de Pessoas</label>
+                            <div class="people-counter">
+                                <button class="counter-btn" id="decrease-people">-</button>
+                                <div class="counter-value" id="meal-people-count">2</div>
+                                <button class="counter-btn" id="increase-people">+</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Orçamento Semanal (€)</label>
+                            <input type="number" class="form-control" id="weekly-budget" value="250" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferências Alimentares</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="pref-vegetarian"> Vegetariano
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="pref-lowcarb"> Low Carb
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="pref-lactosefree"> Sem Lactose
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px;">
+                                <input type="checkbox" id="pref-economy" checked> Econômico
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-body">
+                    <div class="meal-plan-grid" id="full-meal-plan">
+                        <!-- Cardápio completo será gerado por JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shopping List Section -->
+        <section id="shopping" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-shopping-cart"></i> Lista de Compras</h2>
+                <div>
+                    <button class="btn btn-outline" id="clear-list">
+                        <i class="fas fa-trash"></i> Limpar Lista
+                    </button>
+                    <button class="btn btn-primary" id="add-manual-item">
+                        <i class="fas fa-plus"></i> Adicionar Item
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Lista de Compras da Semana</h3>
+                    <button class="btn btn-outline" id="optimize-prices" style="font-size: 0.9rem;">
+                        <i class="fas fa-magic"></i> Otimizar Preços
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="shopping-list" id="full-shopping-list">
+                        <!-- Lista completa será gerada por JavaScript -->
+                    </div>
+                </div>
+                <div class="card-header" style="border-top: 1px solid var(--border-color);">
+                    <div>
+                        <h3>Total Estimado: <span id="shopping-total">€ 0,00</span></h3>
+                        <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 5px;">
+                            <span id="savings-info" style="display: none;">
+                                <i class="fas fa-piggy-bank"></i> Economia possível: <span id="possible-savings" style="color: var(--success-color); font-weight: 600;">€ 0,00</span>
+                            </span>
+                        </p>
+                    </div>
+                    <button class="btn btn-secondary" id="print-list">
+                        <i class="fas fa-print"></i> Imprimir Lista
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-header">
+                    <h3><i class="fas fa-store"></i> Organizar por Loja</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;" id="shopping-by-store">
+                        <!-- Organização por loja será gerada por JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promoções -->
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-header">
+                    <h3><i class="fas fa-tags"></i> Promoções dos Supermercados</h3>
+                    <button class="btn btn-outline" id="refresh-promotions">
+                        <i class="fas fa-sync"></i> Atualizar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="promotions-list">
+                        <!-- Promoções serão geradas por JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Expenses Section -->
+        <section id="expenses" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-chart-line"></i> Controle de Despesas</h2>
+                <button class="btn btn-primary" id="add-expense">
+                    <i class="fas fa-plus"></i> Adicionar Despesa
+                </button>
+            </div>
+
+            <div class="expense-summary">
+                <div class="expense-card">
+                    <h4>Gasto Esta Semana</h4>
+                    <div class="expense-value" id="expense-week">€ 0,00</div>
+                </div>
+                <div class="expense-card">
+                    <h4>Média Semanal</h4>
+                    <div class="expense-value" id="expense-average">€ 0,00</div>
+                </div>
+                <div class="expense-card">
+                    <h4>Economia Mensal</h4>
+                    <div class="expense-value" id="expense-monthly">€ 0,00</div>
+                </div>
+                <div class="expense-card">
+                    <h4>Maior Economia</h4>
+                    <div class="expense-value" id="expense-max">€ 0,00</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Histórico de Compras</h3>
+                    <button class="btn btn-outline" id="filter-expenses">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="expense-list" id="expense-history">
+                        <!-- Histórico será gerado por JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-pie"></i> Distribuição de Gastos</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <div>
+                            <h4 style="margin-bottom: 15px; color: var(--primary-dark);">Por Categoria</h4>
+                            <canvas id="category-chart" style="max-height: 300px;"></canvas>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 15px; color: var(--primary-dark);">Tendência Mensal</h4>
+                            <canvas id="trend-chart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inventory Section -->
+        <section id="inventory" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-box"></i> Inventário da Casa</h2>
+                <button class="btn btn-primary" id="add-inventory-item">
+                    <i class="fas fa-plus"></i> Adicionar Item
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Itens Disponíveis em Casa</h3>
+                    <button class="btn btn-outline" id="refresh-inventory">
+                        <i class="fas fa-sync"></i> Atualizar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="inventory-list">
+                        <!-- Itens do inventário serão gerados por JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Como Funciona</h3>
+                </div>
+                <div class="card-body">
+                    <p>Quando você marca um item como comprado na lista de compras, ele é automaticamente adicionado ao inventário. Você também pode adicionar itens manualmente ou ajustar quantidades.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recipes Section -->
+        <section id="recipes" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-book"></i> Biblioteca de Receitas</h2>
+                <button class="btn btn-primary" id="search-recipes">
+                    <i class="fas fa-search"></i> Buscar Receitas Online
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Filtros</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <input type="text" class="form-control" id="recipe-search" placeholder="Buscar receita..." style="max-width: 300px;">
+                        <select class="form-control" id="recipe-category" style="max-width: 200px;">
+                            <option value="">Todas as Categorias</option>
+                            <option value="Beef">Carne</option>
+                            <option value="Chicken">Frango</option>
+                            <option value="Seafood">Frutos do Mar</option>
+                            <option value="Vegetarian">Vegetariano</option>
+                            <option value="Dessert">Sobremesa</option>
+                        </select>
+                        <button class="btn btn-primary" id="apply-filters">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 25px;">
+                <div class="card-body">
+                    <div id="recipe-loading" style="display: none; text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--primary-color);"></i>
+                        <p style="margin-top: 20px;">Carregando receitas...</p>
+                    </div>
+                    <div class="recipe-grid" id="recipe-library">
+                        <!-- Receitas serão geradas por JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <div class="section-header">
+                <h2><i class="fas fa-cog"></i> Configurações</h2>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Nome do Usuário</label>
+                        <input type="text" class="form-control" id="user-name" value="Família de 2 Pessoas">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Orçamento Mensal para Alimentação (€)</label>
+                        <input type="number" class="form-control" id="monthly-budget" value="1000" min="0" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Número de Pessoas na Casa</label>
+                        <input type="number" class="form-control" id="settings-people" value="2" min="1" max="10">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Preferências de Notificação</label>
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <input type="checkbox" id="notif-shopping" checked>
+                                Lembrete de lista de compras
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <input type="checkbox" id="notif-promotions" checked>
+                                Alertas de promoções
+                            </label>
+                            <div style="margin-left: 30px; margin-top: 10px; padding: 15px; background-color: #f9f9f9; border-radius: var(--radius);">
+                                <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 10px;">
+                                    <strong>Supermercados monitorados:</strong> Intermarché, Aldi, Auchan, Mercado de Azambuja
+                                </p>
+                                <button class="btn btn-outline" id="load-promotions" style="font-size: 0.9rem;">
+                                    <i class="fas fa-sync"></i> Carregar Promoções
+                                </button>
+                            </div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="notif-recipes">
+                                Sugestões de receitas
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Unidade de Medida Preferida</label>
+                        <select class="form-control" id="unit-preference">
+                            <option value="g">Gramas (g)</option>
+                            <option value="kg">Quilogramas (kg)</option>
+                            <option value="ml">Mililitros (ml)</option>
+                            <option value="L">Litros (L)</option>
+                        </select>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button class="btn btn-primary" id="save-settings">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                        <button class="btn btn-outline" id="reset-settings">
+                            <i class="fas fa-sync"></i> Restaurar Padrões
+                        </button>
+                        <button class="btn btn-outline" style="color: var(--danger-color); border-color: var(--danger-color);" id="clear-all-data">
+                            <i class="fas fa-trash"></i> Excluir Todos os Dados
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Camera Modal -->
+        <div class="modal" id="camera-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-camera"></i> Escanear Nota Fiscal</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="camera-container" id="camera-container">
+                        <video id="video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; display: none;"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div id="camera-placeholder" style="text-align: center; color: white;">
+                            <i class="fas fa-camera" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                            <p>Posicione a nota fiscal dentro da área</p>
+                            <p style="font-size: 0.9rem; opacity: 0.8;">A câmera será ativada ao clicar em "Iniciar Câmera"</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ou insira os dados manualmente:</label>
+                        <textarea class="form-control" id="manual-receipt" rows="4" placeholder="Cole aqui os itens da nota fiscal (um por linha)"></textarea>
+                    </div>
+                    
+                    <div class="camera-controls">
+                        <button class="btn btn-primary" id="start-camera">
+                            <i class="fas fa-camera"></i> Iniciar Câmera
+                        </button>
+                        <button class="btn btn-secondary" id="capture-photo" style="display: none;">
+                            <i class="fas fa-camera"></i> Capturar Foto
+                        </button>
+                        <button class="btn btn-secondary" id="simulate-scan">
+                            <i class="fas fa-bolt"></i> Simular Escaneamento
+                        </button>
+                        <button class="btn btn-outline" id="cancel-scan">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Item Modal -->
+        <div class="modal" id="item-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-plus"></i> Adicionar Item à Lista</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Nome do Item</label>
+                        <input type="text" class="form-control" id="item-name" placeholder="Ex: Arroz Integral">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantidade</label>
+                            <input type="number" class="form-control" id="item-quantity" value="1" min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Unidade</label>
+                            <select class="form-control" id="item-unit">
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="L">L</option>
+                                <option value="ml">ml</option>
+                                <option value="un">un</option>
+                                <option value="pacote">pacote</option>
+                                <option value="caixa">caixa</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select class="form-control" id="item-category">
+                                <option value="Mercado">Mercado</option>
+                                <option value="Hortifruti">Hortifruti</option>
+                                <option value="Açougue">Açougue</option>
+                                <option value="Padaria">Padaria</option>
+                                <option value="Laticínios">Laticínios</option>
+                                <option value="Limpeza">Limpeza</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Preço Estimado (€)</label>
+                            <input type="number" class="form-control" id="item-price" placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button class="btn btn-primary" id="save-item">
+                            <i class="fas fa-save"></i> Adicionar Item
+                        </button>
+                        <button class="btn btn-outline" id="cancel-item">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipe Detail Modal -->
+        <div class="modal" id="recipe-modal">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3 id="recipe-modal-title"><i class="fas fa-book"></i> Detalhes da Receita</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body" id="recipe-modal-body">
+                    <!-- Conteúdo será preenchido por JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Planejador Alimentar &copy; 2023 - Sistema Integrado de Cardápio e Compras</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                <i class="fas fa-mobile-alt"></i> Use a câmera do seu celular para escanear notas fiscais automaticamente
+            </p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
