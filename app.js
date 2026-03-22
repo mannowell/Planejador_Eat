@@ -62,6 +62,19 @@ const MEAL_DB_API = 'https://www.themealdb.com/api/json/v1/1';
 const SPOONACULAR_API_KEY = '26b945a353764564900d4a76546373af';
 const SPOONACULAR_API = 'https://api.spoonacular.com';
 const TRANSLATE_API = 'https://api.mymemory.translated.net/get';
+const CORS_PROXY = 'https://api.allorigins.win/raw?url='; // Proxy público para contornar CORS
+
+const SUPERMARKETS = {
+    CONTINENTE: {
+        name: 'Continente',
+        searchUrl: 'https://www.continente.pt/pt/pesquisa/?q=',
+        jsonSuffix: '&format=json'
+    },
+    AUCHAN: {
+        name: 'Auchan',
+        searchUrl: 'https://www.auchan.pt/pt/pesquisa?q='
+    }
+};
 
 // Dicionário de tradução comum para termos de comida
 const foodTranslationDict = {
@@ -687,6 +700,9 @@ function createShoppingItem(item, isPreview) {
     
     const actionsHTML = isPreview ? '' : `
         <div class="item-actions">
+            <button class="compare-price" data-name="${item.name}" title="Comparar Preços em Portugal">
+                <i class="fas fa-search-dollar"></i>
+            </button>
             <button class="edit-item" data-id="${item.id}">
                 <i class="fas fa-edit"></i>
             </button>
@@ -738,6 +754,10 @@ function createShoppingItem(item, isPreview) {
         
         li.querySelector('.delete-item').addEventListener('click', () => {
             deleteShoppingItem(item.id);
+        });
+
+        li.querySelector('.compare-price').addEventListener('click', () => {
+            PriceTracker.comparePrices(item.name);
         });
     }
     
@@ -2156,6 +2176,127 @@ function comparePricesByCategory(category) {
     
     return categoryProducts;
 }
+
+// ============================================
+// RASTREADOR DE PREÇOS - PORTUGAL
+// ============================================
+
+const PriceTracker = {
+    async searchInContinente(query) {
+        try {
+            // Continente tem um endpoint que retorna JSON de pesquisa
+            const url = `${CORS_PROXY}${encodeURIComponent(SUPERMARKETS.CONTINENTE.searchUrl + query + SUPERMARKETS.CONTINENTE.jsonSuffix)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.products && data.products.length > 0) {
+                return data.products.slice(0, 3).map(p => ({
+                    store: 'Continente',
+                    name: p.name,
+                    price: parseFloat(p.price.replace('€', '').replace(',', '.')),
+                    image: p.image,
+                    link: p.link,
+                    isPromotion: p.isPromotion || false
+                }));
+            }
+        } catch (e) {
+            console.warn('Erro ao buscar no Continente:', e);
+        }
+        return [];
+    },
+
+    async searchInAuchan(query) {
+        try {
+            // Auchan é mais complexo, aqui simulamos o parsing ou usamos um fallback inteligente
+            // Em uma implementação real, usaríamos um seletor de DOM via proxy se o JSON falhar
+            const url = `${CORS_PROXY}${encodeURIComponent(SUPERMARKETS.AUCHAN.searchUrl + query)}`;
+            const response = await fetch(url);
+            const html = await response.text();
+            
+            // Parsing simples do HTML retornado pelo proxy (demonstração técnica)
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const products = doc.querySelectorAll('.auc-product-tile'); // Seletor genérico
+            
+            const results = [];
+            products.forEach((p, i) => {
+                if (i < 3) {
+                    const name = p.querySelector('.auc-product-tile__name')?.textContent.trim();
+                    const priceText = p.querySelector('.auc-price__value')?.textContent.trim();
+                    if (name && priceText) {
+                        results.push({
+                            store: 'Auchan',
+                            name: name,
+                            price: parseFloat(priceText.replace('€', '').replace(',', '.')),
+                            isPromotion: !!p.querySelector('.auc-promo-badge')
+                        });
+                    }
+                }
+            });
+            return results;
+        } catch (e) {
+            console.warn('Erro ao buscar no Auchan:', e);
+        }
+        return [];
+    },
+
+    async comparePrices(productName) {
+        showToast(`Buscando preços para "${productName}" em Portugal...`, 'success');
+        
+        const results = await Promise.all([
+            this.searchInContinente(productName),
+            this.searchInAuchan(productName)
+        ]);
+        
+        const allResults = results.flat().sort((a, b) => a.price - b.price);
+        
+        if (allResults.length > 0) {
+            this.showComparisonResult(productName, allResults);
+        } else {
+            showToast('Nenhum resultado encontrado nos mercados selecionados.', 'warning');
+        }
+    },
+
+    showComparisonResult(productName, results) {
+        // Criar ou atualizar um modal de comparação
+        let modal = document.getElementById('comparison-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'comparison-modal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3>Comparação de Preços: <span id="comp-product-name"></span></h3>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="comparison-results-list" class="comparison-list">
+                            <!-- Resultados aparecerão aqui -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.querySelector('.close-modal').onclick = () => modal.classList.remove('active');
+        }
+
+        document.getElementById('comp-product-name').textContent = productName;
+        const list = document.getElementById('comparison-results-list');
+        list.innerHTML = results.map(r => `
+            <div class="comparison-item ${r.isPromotion ? 'is-promo' : ''}">
+                <div class="comp-store">${r.store}</div>
+                <div class="comp-name">${r.name}</div>
+                <div class="comp-price">
+                    ${r.isPromotion ? '<span class="promo-badge">PROMO</span>' : ''}
+                    € ${r.price.toFixed(2)}
+                </div>
+            </div>
+        `).join('');
+
+        modal.classList.add('active');
+    }
+};
 
 async function loadPromotions() {
     if (!appData.settings.notifications.promotions) {
