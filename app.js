@@ -273,8 +273,12 @@ function setupEventListeners() {
     });
 
     // Botões de ação rápida
-    document.getElementById('generate-meal-plan').addEventListener('click', generateMealPlan);
-    document.getElementById('generate-shopping-list').addEventListener('click', generateShoppingList);
+    document.getElementById('generate-meal-plan').addEventListener('click', async () => {
+        await generateMealPlan();
+    });
+    document.getElementById('generate-shopping-list').addEventListener('click', async () => {
+        await generateShoppingList();
+    });
     document.getElementById('export-data').addEventListener('click', exportData);
 
     // Modal da câmera
@@ -372,9 +376,9 @@ function setupEventListeners() {
         showToast('Clique em "Editar" ao lado de cada refeição para modificá-la', 'success');
     });
     
-    document.getElementById('new-meal-plan')?.addEventListener('click', () => {
+    document.getElementById('new-meal-plan')?.addEventListener('click', async () => {
         if (confirm("Deseja criar um novo cardápio? O cardápio atual será substituído.")) {
-            generateMealPlan();
+            await generateMealPlan();
         }
     });
 
@@ -401,6 +405,27 @@ function setupEventListeners() {
         appData.weeklyBudget = parseFloat(e.target.value) || 250;
         saveDataToStorage();
         updateDashboard();
+    });
+
+    // Upload de nota fiscal para OCR
+    document.getElementById('receipt-upload')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        showToast('Processando imagem com OCR...', 'success');
+        try {
+            const result = await Tesseract.recognize(file, 'por');
+            const text = result.data.text;
+            if (text && text.trim()) {
+                processReceiptText(text);
+                showToast('OCR concluído!', 'success');
+            } else {
+                showToast('Não foi possível ler a imagem.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro no OCR:', error);
+            showToast('Erro ao processar imagem.', 'error');
+        }
     });
 
     // Imprimir lista
@@ -903,102 +928,157 @@ function updateSettingsUI() {
 // FUNÇÕES DE CARDÁPIO
 // ============================================
 
-function generateMealPlan() {
+async function fetchRandomRecipeByCategory(category) {
+    try {
+        const response = await fetch(`${MEAL_DB_API}/filter.php?c=${category}`);
+        const data = await response.json();
+        if (data.meals && data.meals.length > 0) {
+            const randomIndex = Math.floor(Math.random() * data.meals.length);
+            const mealId = data.meals[randomIndex].idMeal;
+            
+            // Buscar detalhes da receita
+            const detailResponse = await fetch(`${MEAL_DB_API}/lookup.php?i=${mealId}`);
+            const detailData = await detailResponse.json();
+            return detailData.meals[0];
+        }
+    } catch (error) {
+        console.error('Erro ao buscar receita:', error);
+    }
+    return null;
+}
+
+async function generateMealPlan() {
+    showToast('Gerando cardápio baseado em receitas reais...', 'success');
+    
     const budget = appData.weeklyBudget;
     const people = appData.peopleCount;
-    
-    const mealTemplates = {
-        lowBudget: [
-            { time: "Café", meal: "Pão com manteiga e café" },
-            { time: "Almoço", meal: "Arroz, feijão e ovo" },
-            { time: "Jantar", meal: "Sopa de legumes" }
-        ],
-        mediumBudget: [
-            { time: "Café", meal: "Pão integral com queijo e suco" },
-            { time: "Almoço", meal: "Frango com arroz e salada" },
-            { time: "Jantar", meal: "Omelete com salada" }
-        ],
-        highBudget: [
-            { time: "Café", meal: "Iogurte com granola e frutas" },
-            { time: "Almoço", meal: "Peixe com legumes assados" },
-            { time: "Jantar", meal: "Sanduíche de frango grelhado" }
-        ]
-    };
-    
-    const budgetPerPerson = budget / people;
-    let template;
-    
-    if (budgetPerPerson < 100) {
-        template = 'lowBudget';
-    } else if (budgetPerPerson < 150) {
-        template = 'mediumBudget';
-    } else {
-        template = 'highBudget';
-    }
+    const preferences = appData.preferences;
     
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    days.forEach(day => {
-        appData.mealPlan[day] = JSON.parse(JSON.stringify(mealTemplates[template]));
-    });
+    const categories = ['Beef', 'Chicken', 'Seafood', 'Pork', 'Vegetarian', 'Pasta', 'Side'];
     
-    // Adicionar variações
-    appData.mealPlan.friday[1].meal = "Macarrão ao molho de tomate";
-    appData.mealPlan.saturday[1].meal = "Churrasco de frango e legumes";
-    appData.mealPlan.sunday[0].meal = "Bolo simples e café";
+    // Mapear orçamento para categorias
+    let lunchCategory = 'Chicken';
+    let dinnerCategory = 'Vegetarian';
+    
+    if (preferences.vegetarian) {
+        lunchCategory = 'Vegetarian';
+        dinnerCategory = 'Vegetarian';
+    } else if (budget / people > 150) {
+        lunchCategory = 'Beef';
+        dinnerCategory = 'Seafood';
+    }
+    
+    for (const day of days) {
+        appData.mealPlan[day] = [];
+        
+        // Café da manhã (simples por enquanto)
+        appData.mealPlan[day].push({ time: "Café", meal: "Café com pão e frutas" });
+        
+        // Almoço
+        const lunch = await fetchRandomRecipeByCategory(lunchCategory);
+        if (lunch) {
+            appData.mealPlan[day].push({ 
+                time: "Almoço", 
+                meal: await translateText(lunch.strMeal, 'en', 'pt'),
+                recipeId: lunch.idMeal,
+                image: lunch.strMealThumb
+            });
+        }
+        
+        // Jantar
+        const dinner = await fetchRandomRecipeByCategory(dinnerCategory);
+        if (dinner) {
+            appData.mealPlan[day].push({ 
+                time: "Jantar", 
+                meal: await translateText(dinner.strMeal, 'en', 'pt'),
+                recipeId: dinner.idMeal,
+                image: dinner.strMealThumb
+            });
+        }
+    }
     
     updateMealPlan();
     saveDataToStorage();
-    showToast(`Cardápio gerado para ${people} pessoas!`, 'success');
+    showToast(`Cardápio real gerado para ${people} pessoas!`, 'success');
 }
 
-function generateShoppingList() {
-    const basicItems = [
-        { name: "Arroz", quantity: 0.5 * appData.peopleCount, unit: "kg", category: "Mercado" },
-        { name: "Feijão", quantity: 0.25 * appData.peopleCount, unit: "kg", category: "Mercado" },
-        { name: "Frango", quantity: 1 * appData.peopleCount, unit: "kg", category: "Açougue" },
-        { name: "Ovos", quantity: 6 * appData.peopleCount, unit: "un", category: "Mercado" },
-        { name: "Tomate", quantity: 1 * appData.peopleCount, unit: "kg", category: "Hortifruti" },
-        { name: "Leite", quantity: 2 * appData.peopleCount, unit: "L", category: "Laticínios" },
-        { name: "Azeite", quantity: 0.75 * appData.peopleCount, unit: "L", category: "Mercado" }
-    ];
+async function generateShoppingList() {
+    showToast('Analisando cardápio para gerar lista de compras...', 'success');
     
-    appData.shoppingList = basicItems.map((item, index) => {
-        // Buscar melhor preço inteligente
-        const bestPrice = findBestPrice(item.name);
-        let price = 0;
-        let suggestedStore = null;
-        
-        if (bestPrice) {
-            // Calcular preço baseado na quantidade
-            const pricePerUnit = bestPrice.price / bestPrice.data.quantity;
-            price = pricePerUnit * item.quantity;
-            suggestedStore = bestPrice.store;
-        } else {
-            // Preço padrão se não encontrar
-            const defaultPrices = {
-                "Arroz": 1.19,
-                "Feijão": 1.89,
-                "Frango": 4.99,
-                "Ovos": 2.19,
-                "Tomate": 1.99,
-                "Leite": 0.65,
-                "Azeite": 6.19
-            };
-            price = (defaultPrices[item.name] || 5.00) * item.quantity;
+    const ingredientsMap = new Map();
+    const recipeDetailsCache = new Map();
+    
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    for (const day of days) {
+        const meals = appData.mealPlan[day] || [];
+        for (const meal of meals) {
+            if (meal.recipeId) {
+                let recipe;
+                if (recipeDetailsCache.has(meal.recipeId)) {
+                    recipe = recipeDetailsCache.get(meal.recipeId);
+                } else {
+                    const response = await fetch(`${MEAL_DB_API}/lookup.php?i=${meal.recipeId}`);
+                    const data = await response.json();
+                    recipe = data.meals[0];
+                    recipeDetailsCache.set(meal.recipeId, recipe);
+                }
+                
+                if (recipe) {
+                    // Extrair ingredientes (TheMealDB tem strIngredient1 até strIngredient20)
+                    for (let i = 1; i <= 20; i++) {
+                        const ing = recipe[`strIngredient${i}`];
+                        const measure = recipe[`strMeasure${i}`];
+                        
+                        if (ing && ing.trim()) {
+                            const translatedIng = await translateText(ing, 'en', 'pt');
+                            const key = translatedIng.toLowerCase();
+                            
+                            if (ingredientsMap.has(key)) {
+                                const existing = ingredientsMap.get(key);
+                                existing.count++;
+                                // Tentar somar medidas é complexo, então apenas contamos recorrências por enquanto
+                            } else {
+                                ingredientsMap.set(key, {
+                                    name: translatedIng,
+                                    quantity: 1, // Base
+                                    unit: "un",
+                                    count: 1,
+                                    category: "Mercado"
+                                });
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+    
+    // Adicionar itens básicos se a lista estiver vazia ou como complemento
+    if (ingredientsMap.size === 0) {
+        ingredientsMap.set("arroz", { name: "Arroz", quantity: 1, unit: "kg", category: "Mercado", count: 1 });
+        ingredientsMap.set("feijão", { name: "Feijão", quantity: 1, unit: "kg", category: "Mercado", count: 1 });
+    }
+    
+    appData.shoppingList = Array.from(ingredientsMap.values()).map((item, index) => {
+        const bestPrice = findBestPrice(item.name);
+        const basePrice = bestPrice ? bestPrice.price : 5.00;
         
         return {
-            id: appData.shoppingList.length > 0 ? Math.max(...appData.shoppingList.map(i => i.id)) + index + 1 : index + 1,
-            ...item,
-            price: price,
-            suggestedStore: suggestedStore,
+            id: index + 1,
+            name: item.name,
+            quantity: item.count,
+            unit: item.unit,
+            category: item.category,
+            price: basePrice * item.count,
             checked: false
         };
     });
     
     updateShoppingList();
     saveDataToStorage();
-    showToast(`Lista de compras gerada com preços inteligentes para ${appData.peopleCount} pessoas!`, 'success');
+    showToast(`Lista de compras inteligente gerada: ${appData.shoppingList.length} itens!`, 'success');
 }
 
 function updateShoppingListForPeople() {
@@ -1124,7 +1204,7 @@ async function startCamera() {
     }
 }
 
-function capturePhoto() {
+async function capturePhoto() {
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
@@ -1133,15 +1213,28 @@ function capturePhoto() {
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0);
     
-    // Aqui você poderia enviar a imagem para um serviço de OCR
-    // Por enquanto, vamos apenas simular o processamento
-    showToast('Foto capturada! Processando...', 'success');
+    showToast('Foto capturada! Processando OCR...', 'success');
     
-    // Simular processamento
-    setTimeout(() => {
-        showToast('Nota fiscal processada! Use a opção de simulação para ver os resultados.', 'success');
+    try {
+        const result = await Tesseract.recognize(canvas.toDataURL('image/png'), 'por', {
+            logger: m => console.log(m)
+        });
+        
+        const text = result.data.text;
+        console.log("OCR Result:", text);
+        
+        if (text && text.trim()) {
+            processManualReceipt(text);
+            showToast('OCR concluído com sucesso!', 'success');
+        } else {
+            showToast('Não foi possível extrair texto da imagem.', 'error');
+        }
+        
         stopCamera();
-    }, 2000);
+    } catch (error) {
+        console.error('Erro no OCR:', error);
+        showToast('Erro ao processar imagem.', 'error');
+    }
 }
 
 function stopCamera() {
@@ -1162,63 +1255,55 @@ function stopCamera() {
     captureBtn.style.display = 'none';
 }
 
-function simulateReceiptScan() {
-    const manualReceipt = document.getElementById('manual-receipt').value.trim();
-    
-    if (manualReceipt) {
-        // Processar entrada manual
-        processManualReceipt(manualReceipt);
-    } else {
-        // Simular escaneamento
-        const receiptItems = [
-            "Arroz 5kg - € 25,90",
-            "Feijão 1kg - € 8,50",
-            "Macarrão 500g - € 3,99",
-            "Óleo 900ml - € 7,80",
-            "Açúcar 1kg - € 4,20",
-            "Café 500g - € 14,90",
-            "Leite 1L - € 5,40",
-            "Ovos 12un - € 11,90",
-            "Tomate 1kg - € 6,50",
-            "Alface 1un - € 2,50"
-        ];
-        
-        processReceiptItems(receiptItems);
-    }
-}
-
-function processManualReceipt(text) {
-    const lines = text.split('\n').filter(line => line.trim());
+function processReceiptText(text) {
+    const lines = text.split('\n').filter(line => line.trim().length > 3);
     const items = [];
     
+    // Expressão regular melhorada para capturar Nome e Preço (formato: Nome ... € 0,00 ou Nome 0,00)
+    const priceRegex = /(.*?)\s*[€$R]?\s*(\d+[.,]\d{2})/;
+    
     lines.forEach(line => {
-        // Tentar extrair nome e preço
-        const priceMatch = line.match(/[€R$]\s*([\d,]+\.?\d*)/i);
-        if (priceMatch) {
-            const price = parseFloat(priceMatch[1].replace(',', '.'));
-            const namePart = line.replace(/[€R$]\s*[\d,]+\.?\d*/i, '').trim();
+        const match = line.match(priceRegex);
+        if (match) {
+            let name = match[1].trim()
+                .replace(/^[.*\- ]+/, '') // Limpar prefixos
+                .substring(0, 30); // Limitar tamanho do nome
             
-            // Tentar extrair quantidade e unidade
-            const nameMatch = namePart.match(/(.+?)\s*(\d+(?:[.,]\d+)?)\s*(kg|g|L|ml|un|pacote|caixa)?$/i);
+            const price = parseFloat(match[2].replace(',', '.'));
             
-            let name, quantity = 1, unit = "un";
-            
-            if (nameMatch) {
-                name = nameMatch[1].trim();
-                quantity = parseFloat(nameMatch[2].replace(',', '.'));
-                unit = nameMatch[3] || "un";
-            } else {
-                name = namePart;
+            if (name.length > 2 && price > 0) {
+                items.push({ name, price });
             }
-            
-            items.push({ name, quantity, unit, price });
         }
     });
     
     if (items.length > 0) {
-        processReceiptItems(items.map(item => `${item.name} ${item.quantity}${item.unit} - € ${item.price.toFixed(2)}`));
+        // Converter para o formato esperado pelo processReceiptItems
+        const receiptItems = items.map(item => `${item.name} 1un - € ${item.price.toFixed(2)}`);
+        processReceiptItems(receiptItems);
     } else {
-        showToast('Não foi possível processar os itens. Verifique o formato.', 'error');
+        showToast('Nenhum item com preço identificado. Tente novamente ou insira manualmente.', 'warning');
+    }
+}
+
+function simulateReceiptScan() {
+    const manualText = document.getElementById('manual-receipt').value.trim();
+    if (manualText) {
+        processReceiptText(manualText);
+    } else {
+        // Dados de exemplo realistas para o "Efeito Uau"
+        const items = `
+ARROZ INTEGRAL 1KG € 2,49
+FEIJAO PRETO 1KG € 1,89
+PEITO DE FRANGO € 5,90
+LEITE MEIO GORDO € 0,85
+OVOS CLASSE L 12UN € 2,15
+TOMATE RAMA KG € 1,99
+CEBOLA SACO 2KG € 1,45
+MACARRAO ESPAGUETE € 0,95
+PAO DE FORMA € 1,20
+IOGURTE NATURAL € 1,50`.trim();
+        processReceiptText(items);
     }
 }
 
