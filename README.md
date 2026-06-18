@@ -1,5 +1,13 @@
 # 🍽️ Planejador Alimentar - Cardápio & Compras
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26.svg?logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6.svg?logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E.svg?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Chart.js](https://img.shields.io/badge/Chart.js-4.x-FF6384.svg?logo=chartdotjs&logoColor=white)](https://www.chartjs.org/)
+[![TheMealDB](https://img.shields.io/badge/TheMealDB-API-20B2AA.svg)](https://www.themealdb.com/api.php)
+[![FontAwesome](https://img.shields.io/badge/FontAwesome-6.0-528DD7.svg?logo=fontawesome&logoColor=white)](https://fontawesome.com/)
+
 Sistema completo de planejamento alimentar com cardápio semanal, lista de compras inteligente, controle de despesas e integração com API de receitas.
 
 ## 📋 Funcionalidades
@@ -29,7 +37,7 @@ Sistema completo de planejamento alimentar com cardápio semanal, lista de compr
    - Orçamento semanal/mensal
    - Preferências alimentares
 
-2. **Criar Cardápio**: 
+2. **Criar Cardápio**:
    - Clique em "Gerar Cardápio Automático" para criar um cardápio baseado no seu orçamento
    - Ou edite manualmente cada dia da semana
 
@@ -85,8 +93,8 @@ fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=chicken')
 **Código de Exemplo**:
 ```javascript
 // Solicitar acesso à câmera
-const stream = await navigator.mediaDevices.getUserMedia({ 
-    video: { facingMode: 'environment' } 
+const stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment' }
 });
 ```
 
@@ -230,17 +238,25 @@ mercado/
 - [ ] Exportação para PDF
 - [ ] Integração com calendário
 
-## 🛠️ Como Contribuir
+## 👤 Autor
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+**Wellison Oliveira** ([@mannowell](https://github.com/mannowell))
+
+Desenvolvido com ❤️ para facilitar o planejamento alimentar.
 
 ## 📄 Licença
 
-Este projeto é de código aberto e está disponível para uso livre.
+Este projeto está licenciado sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Siga os passos abaixo:
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
 
 ## 🙏 Agradecimentos
 
@@ -254,8 +270,3 @@ Para dúvidas ou problemas:
 1. Verifique a documentação acima
 2. Consulte o código comentado
 3. Abra uma issue no repositório
-
----
-
-**Desenvolvido com ❤️ para facilitar o planejamento alimentar**
-
