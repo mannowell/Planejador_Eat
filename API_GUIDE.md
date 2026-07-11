@@ -354,5 +354,5 @@ async function capturePhoto() {
 
 ---
 
-**Última atualização**: 2024
+**Última atualização**: 2025
 

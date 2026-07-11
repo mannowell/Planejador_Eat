@@ -104,8 +104,7 @@ const foodTranslationDict = {
     'vegano': 'vegan',
     'doce': 'sweet',
     'salgado': 'savory',
-    'picante': 'spicy',
-    'doce': 'sweet'
+    'picante': 'spicy'
 };
 
 // ============================================
@@ -520,13 +519,6 @@ function updateShoppingTotal() {
         } else {
             savingsInfo.style.display = 'none';
         }
-    }
-    
-    // Atualizar estatísticas
-    const remaining = total - checkedTotal;
-    const statBudget = document.getElementById('stat-budget');
-    if (statBudget) {
-        statBudget.textContent = formatCurrency(remaining);
     }
 }
 
@@ -1244,7 +1236,7 @@ async function capturePhoto() {
         console.log("OCR Result:", text);
         
         if (text && text.trim()) {
-            processManualReceipt(text);
+            processReceiptText(text);
             showToast('OCR concluído com sucesso!', 'success');
         } else {
             showToast('Não foi possível extrair texto da imagem.', 'error');
@@ -2631,7 +2623,9 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.style.animation = 'slideIn 0.3s reverse';
         setTimeout(() => {
-            document.body.removeChild(toast);
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
         }, 300);
     }, 3000);
 }

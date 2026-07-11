@@ -15,6 +15,7 @@
     --danger-color: #f44336;
     --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     --radius: 8px;
+    --transition: all 0.3s ease;
 }
 
 * {
@@ -699,6 +700,10 @@ footer {
 
 .toast.success {
     background-color: var(--success-color);
+}
+
+.toast.warning {
+    background-color: var(--warning-color);
 }
 
 @keyframes slideIn {

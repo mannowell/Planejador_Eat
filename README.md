@@ -202,13 +202,13 @@ const stream = await navigator.mediaDevices.getUserMedia({
 ## 📝 Estrutura de Arquivos
 
 ```
-mercado/
+Planejador_Eat/
 │
 ├── index.html          # Página principal
 ├── styles.css          # Estilos
-├── app.js             # Lógica da aplicação
-├── README.md          # Documentação
-
+├── app.js              # Lógica da aplicação
+├── README.md           # Documentação
+├── API_GUIDE.md        # Guia de APIs
 ```
 
 ## 🚨 Limitações e Melhorias Futuras
