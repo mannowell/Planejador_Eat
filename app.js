@@ -4,10 +4,7 @@
 
 // Funções utilitárias (definidas primeiro para uso em appData)
 function getCurrentWeek() {
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const pastDaysOfYear = (now - startOfYear) / 86400000;
-    return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+    return getWeekNumber(new Date());
 }
 
 function formatCurrency(value) {
@@ -17,6 +14,16 @@ function formatCurrency(value) {
         return `€ ${value.toFixed(2)}`;
     }
     return `R$ ${value.toFixed(2)}`;
+}
+
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 // Dados da aplicação
@@ -465,9 +472,11 @@ function optimizeShoppingListPrices() {
             if (optimizedPrice < item.price) {
                 const savings = item.price - optimizedPrice;
                 totalSavings += savings;
+                if (!item.originalPrice) {
+                    item.originalPrice = item.price;
+                }
                 item.price = optimizedPrice;
                 item.suggestedStore = bestPrice.store;
-                item.originalPrice = item.price + savings; // Guardar preço original
                 optimizedCount++;
             }
         }
@@ -804,8 +813,6 @@ function updateShoppingByStore() {
     });
 }
 
-// updateShoppingTotal já foi definida anteriormente com lógica melhorada
-
 function updateExpenses() {
     const expenseList = document.getElementById('expense-history');
     if (!expenseList) return;
@@ -814,26 +821,49 @@ function updateExpenses() {
     
     if (appData.expenses.length === 0) {
         expenseList.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">Nenhuma despesa registrada ainda.</p>';
-        return;
+    } else {
+        appData.expenses.forEach(expense => {
+            const div = document.createElement('div');
+            div.className = 'expense-item';
+            
+            const date = new Date(expense.date);
+            const formattedDate = date.toLocaleDateString('pt-BR');
+            
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600;">${expense.store}</div>
+                    <div class="expense-date">${formattedDate} • ${expense.items} itens</div>
+                </div>
+                <div class="expense-amount">${formatCurrency(expense.amount)}</div>
+            `;
+            
+            expenseList.appendChild(div);
+        });
     }
     
-    appData.expenses.forEach(expense => {
-        const div = document.createElement('div');
-        div.className = 'expense-item';
-        
-        const date = new Date(expense.date);
-        const formattedDate = date.toLocaleDateString('pt-BR');
-        
-        div.innerHTML = `
-            <div>
-                <div style="font-weight: 600;">${expense.store}</div>
-                <div class="expense-date">${formattedDate} • ${expense.items} itens</div>
-            </div>
-            <div class="expense-amount">${formatCurrency(expense.amount)}</div>
-        `;
-        
-        expenseList.appendChild(div);
-    });
+    // Dashboard preview
+    const dashboardExpenses = document.getElementById('dashboard-expenses');
+    if (dashboardExpenses) {
+        dashboardExpenses.innerHTML = '';
+        const previewExpenses = appData.expenses.slice(0, 3);
+        if (previewExpenses.length === 0) {
+            dashboardExpenses.innerHTML = '<p style="text-align: center; color: var(--text-light); padding: 20px;">Nenhuma despesa registrada.</p>';
+        } else {
+            previewExpenses.forEach(expense => {
+                const div = document.createElement('div');
+                div.className = 'expense-item';
+                const date = new Date(expense.date);
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600;">${expense.store}</div>
+                        <div class="expense-date">${date.toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <div class="expense-amount">${formatCurrency(expense.amount)}</div>
+                `;
+                dashboardExpenses.appendChild(div);
+            });
+        }
+    }
     
     updateExpenseSummary();
 }
@@ -853,12 +883,14 @@ function updateExpenseSummary() {
         : 0;
     
     const monthlySavings = (appData.weeklyBudget * 4) - (average * 4);
-    const maxSavings = Math.max(...appData.expenses.map(e => e.amount), 0);
+    const maxSingleSaving = appData.expenses.length > 0
+        ? Math.max(...appData.expenses.map(e => appData.weeklyBudget - e.amount), 0)
+        : 0;
     
     document.getElementById('expense-week').textContent = formatCurrency(weekTotal);
     document.getElementById('expense-average').textContent = formatCurrency(average);
     document.getElementById('expense-monthly').textContent = formatCurrency(monthlySavings);
-    document.getElementById('expense-max').textContent = formatCurrency(maxSavings);
+    document.getElementById('expense-max').textContent = formatCurrency(maxSingleSaving);
 }
 
 function updateRecipes() {
@@ -1098,8 +1130,14 @@ function updateShoppingListForPeople() {
     const multiplier = appData.peopleCount / basePeople;
     
     appData.shoppingList.forEach(item => {
-        item.quantity = parseFloat((item.quantity * multiplier).toFixed(2));
-        item.price = parseFloat((item.price * multiplier).toFixed(2));
+        if (item.basePrice === undefined) {
+            item.basePrice = item.price;
+        }
+        if (item.baseQuantity === undefined) {
+            item.baseQuantity = item.quantity;
+        }
+        item.quantity = parseFloat((item.baseQuantity * multiplier).toFixed(2));
+        item.price = parseFloat((item.basePrice * multiplier).toFixed(2));
     });
     
     updateShoppingList();
@@ -1781,14 +1819,14 @@ function createRecipeCardFromAPI(recipe) {
     }
     
     card.innerHTML = `
-        <div class="recipe-img" style="background-image: url('${imgUrl}');"></div>
+        <div class="recipe-img" style="background-image: url('${escapeHTML(imgUrl)}');"></div>
         <div class="recipe-info">
-            <div class="recipe-title">${title}</div>
+            <div class="recipe-title">${escapeHTML(title)}</div>
             <div class="recipe-meta">
-                <span><i class="fas fa-tag"></i> ${category}</span>
+                <span><i class="fas fa-tag"></i> ${escapeHTML(category)}</span>
                 <span><i class="fas fa-language"></i> ${language === 'pt' ? 'PT' : 'EN'} ${recipe.translated ? '🔄' : ''}</span>
             </div>
-            <button class="btn btn-outline" style="margin-top: 10px; width: 100%; font-size: 0.9rem;" onclick="showRecipeDetails('${recipeId}', '${source}')">
+            <button class="btn btn-outline" style="margin-top: 10px; width: 100%; font-size: 0.9rem;" onclick="showRecipeDetails('${escapeHTML(String(recipeId))}', '${escapeHTML(source)}')">
                 <i class="fas fa-eye"></i> Ver Detalhes
             </button>
         </div>
@@ -2555,6 +2593,7 @@ function resetSettings() {
         appData.settings = {
             userName: "Família de 2 Pessoas",
             unitPreference: "g",
+            currency: "EUR",
             notifications: {
                 shopping: true,
                 promotions: true,
@@ -2562,7 +2601,9 @@ function resetSettings() {
             }
         };
         appData.monthlyBudget = 1000;
+        appData.peopleCount = 2;
         updateSettingsUI();
+        updatePeopleCount();
         saveDataToStorage();
         showToast('Configurações restauradas!', 'success');
     }
@@ -2621,7 +2662,7 @@ function showToast(message, type = 'success') {
     document.body.appendChild(toast);
     
     setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s reverse';
+        toast.style.animation = 'slideOut 0.3s forwards';
         setTimeout(() => {
             if (toast.parentNode) {
                 document.body.removeChild(toast);

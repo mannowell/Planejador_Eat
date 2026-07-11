@@ -215,10 +215,7 @@ Planejador_Eat/
 
 ### Limitações Atuais
 
-1. **OCR de Notas Fiscais**: O escaneamento ainda é simulado. Para implementação real, seria necessário:
-   - Integração com API de OCR (Google Vision, Tesseract.js)
-   - Processamento de imagens
-   - Reconhecimento de texto
+1. **OCR de Notas Fiscais**: O escaneamento usa Tesseract.js (client-side) para reconhecimento de texto. A precisão depende da qualidade da imagem e pode variar.
 
 2. **Sincronização**: Dados apenas locais (sem nuvem)
    - Solução: Integrar com Firebase ou backend próprio
@@ -228,7 +225,6 @@ Planejador_Eat/
 
 ### Melhorias Sugeridas
 
-- [ ] Integração com API de OCR para notas fiscais reais
 - [ ] Sincronização em nuvem
 - [ ] App mobile (PWA)
 - [ ] Integração com APIs de supermercados para preços
